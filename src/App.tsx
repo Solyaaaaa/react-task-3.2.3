@@ -8,69 +8,48 @@ import {
 } from '@mantine/core';
 import '@mantine/core/styles.css';
 import { PortalModal } from './components/PortalModal/PortalModal';
-import type { Launch } from './types/launch';
 import { LaunchList } from './components/LaunchList/LaunchList';
+import { initialState, reducer } from './store/launchReducer';
+import type { Launch } from './types/launch';
 
-type State = {
-  currentLaunches: Launch[] | null;
-  modalOpen: boolean;
-  selectedLaunch: Launch | null;
-};
-type Action =
-  | { type: 'stateLaunch'; payload: Launch[] }
-  | { type: 'openModal'; payload: Launch }
-  | { type: 'closeModal' };
-
-const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case 'stateLaunch':
-      return {
-        ...state,
-        currentLaunches: action.payload,
-      };
-    case 'openModal':
-      return {
-        ...state,
-        modalOpen: true,
-        selectedLaunch: action.payload,
-      };
-    case 'closeModal':
-      return {
-        ...state,
-        modalOpen: false,
-        selectedLaunch: null,
-      };
-
-    default:
-      return state;
-  }
-};
 function App() {
-  const [state, dispatch] = useReducer(reducer, {
-    currentLaunches: null,
-    modalOpen: false,
-    selectedLaunch: null,
-  });
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const handleOpenModal = (launch: Launch) =>
+    dispatch({ type: 'openModal', payload: launch });
+  const handleCloseModal = () => dispatch({ type: 'closeModal' });
+
   useEffect(() => {
+    const controller = new AbortController();
     const fetchFunc = async () => {
-      const response = await fetch(
-        `https://api.spacexdata.com/v3/launches?launch_year=2020`
-      );
-      const resJson = await response.json();
+      try {
+        const response = await fetch(
+          `https://api.spacexdata.com/v3/launches?launch_year=2020`,
+          { signal: controller.signal }
+        );
+        const resJson = await response.json();
 
-      dispatch({ type: 'stateLaunch', payload: resJson });
+        dispatch({ type: 'set_launches', payload: resJson });
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Ошибка при загрузке: ', error.message);
+        }
+      }
     };
-
     fetchFunc();
+
+    return () => controller.abort();
   }, []);
 
   return (
     <MantineProvider>
       <AppShell header={{ height: 70 }} padding="md" withBorder={false}>
         <AppShell.Header>
-          <Flex justify="center" align="center" h="100%">
-            <h1>SpaseX Launches 2020</h1>
-          </Flex>
+          <Container size="xl">
+            <Flex justify="center" align="center" h="100%">
+              <h1>SpaseX Launches 2020</h1>
+            </Flex>
+          </Container>
         </AppShell.Header>
         <AppShell.Main>
           <Container size="xl">
@@ -84,18 +63,18 @@ function App() {
               {state.currentLaunches ? (
                 <LaunchList
                   currentLaunches={state.currentLaunches}
-                  onOpenModal={(launch) =>
-                    dispatch({ type: 'openModal', payload: launch })
-                  }
+                  onOpenModal={handleOpenModal}
                 />
               ) : (
-                <Loader />
+                <Flex justify="center" w="100%">
+                  <Loader color="blue" size="xl" type="dots" />
+                </Flex>
               )}
 
               {state.modalOpen && (
                 <PortalModal
                   launch={state.selectedLaunch}
-                  onClose={() => dispatch({ type: 'closeModal' })}
+                  onClose={handleCloseModal}
                 />
               )}
             </Flex>

@@ -6,8 +6,9 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/SpaseX-Launches-2020/',
+  
   plugins: [react()],
+  base: '/react-task-3.2.3/',
   test: {
     
     globals: true,

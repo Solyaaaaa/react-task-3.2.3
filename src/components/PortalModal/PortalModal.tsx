@@ -15,8 +15,6 @@ type PortalModalProps = {
   onClose: () => void;
 };
 
-
-
 export const PortalModal: React.FC<PortalModalProps> = ({
   launch,
   onClose,
